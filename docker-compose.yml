@@ -1,0 +1,46 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8080" 
+    volumes:
+      - blob-storage:/data/blobs
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=filesync;Username=postgres;Password=postgres
+    depends_on:
+      db:
+        condition: service_healthy    # ← КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: ждём, пока db станет healthy
+    networks:
+      - app-network
+    restart: on-failure               # ← На случай, если app всё же упадёт, перезапустим
+
+  db:
+    image: postgres:14.3
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: filesync
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    healthcheck:                       # ← НОВЫЙ БЛОК: проверка готовности БД
+      test: ["CMD-SHELL", "pg_isready -U postgres -d filesync"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres-data:
+  blob-storage:
+
+networks:
+  app-network:
+    driver: bridge
