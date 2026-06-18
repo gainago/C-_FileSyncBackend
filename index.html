@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Sync System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            background: #eef0ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background: #e0e4ff;
+            border-color: #764ba2;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .file-list {
+            list-style: none;
+            margin-top: 20px;
+        }
+
+        .file-item {
+            background: #f8f9ff;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .file-hash {
+            font-size: 12px;
+            color: #666;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+
+        .file-size {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .commit-list {
+            list-style: none;
+            margin-top: 20px;
+        }
+
+        .commit-item {
+            background: #f8f9ff;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #764ba2;
+        }
+
+        .commit-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .commit-id {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .commit-time {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .commit-author {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .commit-comment {
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .commit-files {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📁 File Sync System</h1>
+
+        <div class="grid">
+            <!-- Upload Section -->
+            <div class="card">
+                <h2>📤 Загрузка файлов</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <p>Перетащите файлы сюда или нажмите для выбора</p>
+                    <input type="file" id="fileInput" multiple style="display: none;">
+                </div>
+                <div id="uploadStatus"></div>
+            </div>
+
+            <!-- Commit Section -->
+            <div class="card">
+                <h2>💾 Создание коммита</h2>
+                <input type="text" id="authorInput" placeholder="Имя автора (например: student_123)">
+                <input type="text" id="commentInput" placeholder="Комментарий к коммиту">
+                <button class="btn" id="makeCommitBtn" onclick="makeCommit()">Создать коммит</button>
+                <div id="commitStatus"></div>
+            </div>
+        </div>
+
+        <!-- Files List -->
+        <div class="card">
+            <h2>📋 Загруженные файлы</h2>
+            <ul class="file-list" id="fileList">
+                <li class="file-item">
+                    <div class="file-info">
+                        <div class="file-name">Файлы появятся здесь после загрузки</div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Commits History -->
+        <div class="card">
+            <h2>📜 История коммитов</h2>
+            <button class="btn" onclick="loadCommits()">Обновить список</button>
+            <ul class="commit-list" id="commitList">
+                <li class="commit-item">
+                    <div class="commit-header">
+                        <div class="commit-id">Загрузка...</div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let uploadedFiles = [];
+
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        async function handleFiles(files) {
+            for (let file of files) {
+                await uploadFile(file);
+            }
+        }
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                showStatus('uploadStatus', `Загрузка ${file.name}...`, 'info');
+                
+                const response = await fetch(`${API_BASE}/files/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                uploadedFiles.push({
+                    path: `/${file.name}`,
+                    hash: result.hash,
+                    fileName: file.name,
+                    size: result.size
+                });
+
+                updateFileList();
+                showStatus('uploadStatus', `✓ ${file.name} загружен успешно`, 'success');
+                
+            } catch (error) {
+                showStatus('uploadStatus', `✗ Ошибка загрузки ${file.name}: ${error.message}`, 'error');
+            }
+        }
+
+        function updateFileList() {
+            const fileList = document.getElementById('fileList');
+            
+            if (uploadedFiles.length === 0) {
+                fileList.innerHTML = '<li class="file-item"><div class="file-info"><div class="file-name">Файлы появятся здесь после загрузки</div></div></li>';
+                return;
+            }
+
+            fileList.innerHTML = uploadedFiles.map(file => `
+                <li class="file-item">
+                    <div class="file-info">
+                        <div class="file-name">${file.fileName}</div>
+                        <div class="file-hash">Hash: ${file.hash}</div>
+                        <div class="file-size">Размер: ${formatSize(file.size)}</div>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        async function makeCommit() {
+            const author = document.getElementById('authorInput').value.trim();
+            const comment = document.getElementById('commentInput').value.trim();
+
+            if (!author) {
+                showStatus('commitStatus', '✗ Укажите имя автора', 'error');
+                return;
+            }
+
+            if (uploadedFiles.length === 0) {
+                showStatus('commitStatus', '✗ Сначала загрузите файлы', 'error');
+                return;
+            }
+
+            const filesDict = {};
+            uploadedFiles.forEach(file => {
+                filesDict[file.path] = file.hash;
+            });
+
+            try {
+                showStatus('commitStatus', 'Создание коммита...', 'info');
+
+                const response = await fetch(`${API_BASE}/commits`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        author: author,
+                        comment: comment || 'No comment',
+                        files: filesDict,
+                        parentId: null
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+                }
+
+                const result = await response.json();
+                
+                showStatus('commitStatus', `✓ Коммит создан успешно! ID: ${result.id}`, 'success');
+                
+                // Clear uploaded files after commit
+                uploadedFiles = [];
+                updateFileList();
+                document.getElementById('authorInput').value = '';
+                document.getElementById('commentInput').value = '';
+                
+                // Reload commits
+                loadCommits();
+                
+            } catch (error) {
+                showStatus('commitStatus', `✗ Ошибка создания коммита: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadCommits() {
+            try {
+                const response = await fetch(`${API_BASE}/commits`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const commits = await response.json();
+                updateCommitList(commits);
+                
+            } catch (error) {
+                document.getElementById('commitList').innerHTML = `
+                    <li class="commit-item">
+                        <div style="color: red;">Ошибка загрузки: ${error.message}</div>
+                    </li>
+                `;
+            }
+        }
+
+        function updateCommitList(commits) {
+            const commitList = document.getElementById('commitList');
+            
+            if (commits.length === 0) {
+                commitList.innerHTML = '<li class="commit-item"><div>Коммитов пока нет</div></li>';
+                return;
+            }
+
+            commitList.innerHTML = commits.map(commit => `
+                <li class="commit-item">
+                    <div class="commit-header">
+                        <div class="commit-id">ID: ${commit.id.substring(0, 8)}...</div>
+                        <div class="commit-time">${new Date(commit.timestamp).toLocaleString('ru-RU')}</div>
+                    </div>
+                    <div class="commit-author">Автор: ${commit.author}</div>
+                    <div class="commit-comment">${commit.comment || 'Без комментария'}</div>
+                    <div class="commit-files">Файлов: ${commit.files ? commit.files.length : 0}</div>
+                </li>
+            `).join('');
+        }
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    element.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Load commits on page load
+        loadCommits();
+    </script>
+</body>
+</html>

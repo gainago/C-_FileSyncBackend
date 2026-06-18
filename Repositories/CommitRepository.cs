@@ -31,6 +31,7 @@ public class CommitRepository : ICommitRepository
     public async Task<List<Commit>> GetAllAsync()
     {
         return await _context.Commits
+            .Include(c => c.Files)      //this row
             .OrderByDescending(c => c.Timestamp)
             .ToListAsync();
     }
